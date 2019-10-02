@@ -23,8 +23,7 @@ func main() {
 				return
 			}
 			log.Println("[MQTT]", "Notification received", string(message.Payload()))
-			handleNotification(n)
-
+			go handleNotification(n)
 		}).Wait()
 		log.Println("[MQTT]", "Subscribed to notification topic")
 	}
@@ -45,7 +44,7 @@ func main() {
 func handleNotification(n model.Notification) {
 	switch n.Type {
 	case "SLACK":
-		slack.SendMessageToUser("UNETY02UA", "you got notification")
+		slack.SendMessageToUser(n.SlackUserId, "you got notification")
 		break
 	}
 }

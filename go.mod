@@ -1,1 +1,1 @@
-module monitor-service
+module notification-service

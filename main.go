@@ -46,14 +46,14 @@ func main() {
 }
 
 func handleNotification(n model.Notification) {
+	sc := model.SlackConfig{}
+	err := dao.Collection("slack_config").Find(bson.M{"userId": n.UserId}).One(&sc)
+	if err != nil {
+		log.Println("[NOTIFICATION]", "Fail to send notification by error", err.Error())
+		return
+	}
 	switch n.Type {
-	case model.NotificationTypeSlack:
-		sc := model.SlackConfig{}
-		err := dao.Collection("slack_config").Find(bson.M{"userId": n.UserId}).One(&sc)
-		if err != nil {
-			log.Println("[NOTIFICATION]", "Fail to send notification by error", err.Error())
-			return
-		}
+	case model.NotificationTypeSittingRemind:
 		color := model.NotificationSeverityWarning
 		if n.SitDuration.Minutes()-float64(n.Rule.IntervalMinutes) > 10 {
 			color = model.NotificationSeverityDanger
@@ -66,5 +66,18 @@ func handleNotification(n model.Notification) {
 			Footer:     "To protect your health, please consider to stand up and do some exercises.",
 		})
 		break
+	case model.NotificationTypeDeviceStatusAlert:
+		d := model.Device{}
+		if err := dao.Collection("device").Find(bson.M{"deviceId": n.DeviceId}).One(&d); err != nil {
+			log.Println("[NOTIFICATION]", "Device not found")
+		}
+		color := model.NotificationSeverityDanger
+		slack.SendMessage(sc.SlackUserId, slack.Attachment{
+			AuthorName: "Device Monitoring Bot",
+			Color:      color,
+			Title:      "Device is OFFLINE",
+			Text:       "Fail to contact to device " + d.Name,
+			Footer:     "Please double check power cable or device configuration to resolve the issue",
+		})
 	}
 }
